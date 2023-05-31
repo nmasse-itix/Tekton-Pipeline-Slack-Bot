@@ -55,23 +55,13 @@ podman login quay.io
 podman push quay.io/madroadshowfrance2023/tekton-pipeline-slack-bot:latest
 ```
 
-## Creating a native executable
+## Usage in Tekton Pipelines
 
-You can create a native executable using:
-
-```shell script
-./mvnw package -Pnative
+```sh
+kubectl create secret generic tekton-tokens --from-literal=bot-token=xoxb-.... --from-literal=app-token=xapp-....
+kubectl apply -f src/main/kubernetes/pipeline.yaml
+kubectl create -f src/main/kubernetes/pipelinerun.yaml
 ```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Pnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/slack-bot-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
 
 ## Related Guides
 

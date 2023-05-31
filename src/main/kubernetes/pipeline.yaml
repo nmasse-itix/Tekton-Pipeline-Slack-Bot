@@ -1,0 +1,91 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: foo
+spec:
+  steps:
+  - name: foo
+    image: registry.access.redhat.com/ubi8/ubi:8.8
+    script: |
+      #!/bin/sh
+      set -eu
+
+      echo "FOO"
+
+      exit 0
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: bar
+spec:
+  steps:
+  - name: bar
+    image: registry.access.redhat.com/ubi8/ubi:8.8
+    script: |
+      #!/bin/sh
+      set -eu
+
+      echo "BAR"
+
+      exit 0
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: slack-approval
+spec:
+  params:
+  - name: slackChannel
+    type: string
+  - name: slackSecretName
+    type: string
+  - name: pipelineId
+    type: string
+  steps:
+  - name: slack-approval
+    image: quay.io/madroadshowfrance2023/tekton-pipeline-slack-bot:latest
+    env:
+    - name: SLACK_CHANNEL
+      value: "$(params.slackChannel)"
+    - name: TEKTON_PIPELINE_ID
+      value: "$(params.pipelineId)"
+    - name: SLACK_BOT_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: $(params.slackSecretName)
+          key: "bot-token"
+    - name: SLACK_APP_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: $(params.slackSecretName)
+          key: "app-token"
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: sample-pipeline
+spec:
+  tasks:
+  - name: foo
+    taskRef:
+      name: foo
+
+  - name: slack-approval
+    params:
+    - name: slackChannel
+      value: "#mad-roadshow-france-2023"
+    - name: slackSecretName
+      value: "tekton-tokens"
+    - name: pipelineId
+      value: "$(context.pipelineRun.name)"
+    runAfter:
+    - foo
+    taskRef:
+      name: slack-approval
+
+  - name: bar
+    taskRef:
+      name: bar
+    runAfter:
+    - slack-approval
